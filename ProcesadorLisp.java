@@ -2,35 +2,31 @@ import java.util.*;
 
 public class ProcesadorLisp {
 
-    // Posibles estados 
     enum Estado {
         INICIO, NUMERO, IDENTIFICADOR, CADENA, OPERADOR, TERMINADO
     }
 
-    // Metodo para eliminar espacios en blanco
+    private static final Set<String> PALABRAS_CLAVE = Set.of("QUOTE", "SETQ", "DEFUN");
+
     public static String cleanInput(String input) {
         return input.replaceAll("\\s+", " ").trim();
     }
 
-    // Metodo para verificar el numero de parentesis de la expresion
     public static boolean isBalanced(String input) {
         Stack<Character> stack = new Stack<>();
-
         for (char c : input.toCharArray()) {
             if (c == '(') {
                 stack.push(c);
             } else if (c == ')') {
                 if (stack.isEmpty()) {
-                    return false; 
+                    return false;
                 }
                 stack.pop();
             }
         }
-
-        return stack.isEmpty(); 
+        return stack.isEmpty();
     }
 
-    // Metodo para organizar los tokens 
     public List<Token> tokenizar(String expresion) {
         if (!isBalanced(expresion)) {
             throw new IllegalArgumentException("La expresión tiene un desbalance en los paréntesis");
@@ -38,15 +34,16 @@ public class ProcesadorLisp {
 
         expresion = cleanInput(expresion);
         List<Token> tokens = new ArrayList<>();
-        Estado estado = Estado.INICIO;  
+        Estado estado = Estado.INICIO;
         StringBuilder buffer = new StringBuilder();
         char[] caracteres = expresion.toCharArray();
-        // Clasificacion del tipo de tokens 
-        for (char c : caracteres) {
+
+        for (int i = 0; i < caracteres.length; i++) {
+            char c = caracteres[i];
             switch (estado) {
                 case INICIO -> {
                     if (Character.isWhitespace(c)) {
-                        continue; 
+                        continue;
                     }
                     if (c == '(') {
                         tokens.add(new Token(TiposTokens.Parentesis_Abierto, "("));
@@ -54,16 +51,31 @@ public class ProcesadorLisp {
                         tokens.add(new Token(TiposTokens.Parentesis_Cerrado, ")"));
                     } else if (Character.isDigit(c)) {
                         buffer.append(c);
-                        estado = Estado.NUMERO; 
+                        estado = Estado.NUMERO;
                     } else if (Character.isLetter(c)) {
                         buffer.append(c);
                         estado = Estado.IDENTIFICADOR;
                     } else if (c == '"') {
                         buffer.append(c);
-                        estado = Estado.CADENA; 
+                        estado = Estado.CADENA;
                     } else if ("+-*/<>=,.".indexOf(c) != -1) {
                         buffer.append(c);
-                        estado = Estado.OPERADOR; 
+                        estado = Estado.OPERADOR;
+                    } else if (c == '\'') {
+                        tokens.add(new Token(TiposTokens.Cita, "'"));
+                    } else if (c == '`') {
+                        tokens.add(new Token(TiposTokens.Quasiquote, "`"));
+                    } else if (c == ',') {
+                        tokens.add(new Token(TiposTokens.Unquote, ","));
+                    } else if (c == '@') {
+                        tokens.add(new Token(TiposTokens.Unquote_Splicing, "@"));
+                    } else if (c == '#') {
+                        if (i + 1 < caracteres.length && caracteres[i + 1] == '(') {
+                            tokens.add(new Token(TiposTokens.Vector, "#("));
+                            i++; 
+                        } else {
+                            tokens.add(new Token(TiposTokens.Hashtag, "#"));
+                        }
                     } else {
                         throw new IllegalArgumentException("Carácter inesperado: " + c);
                     }
@@ -73,25 +85,29 @@ public class ProcesadorLisp {
                         buffer.append(c);
                     } else {
                         tokens.add(new Token(TiposTokens.Numero_entero, buffer.toString()));
-                        buffer.setLength(0); 
-                        estado = Estado.INICIO; 
+                        buffer.setLength(0);
+                        estado = Estado.INICIO;
+                        i--;
                     }
                 }
                 case IDENTIFICADOR -> {
                     if (Character.isLetterOrDigit(c) || c == '-') {
                         buffer.append(c);
                     } else {
-                        tokens.add(new Token(TiposTokens.Identificador, buffer.toString()));
-                        buffer.setLength(0); 
-                        estado = Estado.INICIO; 
+                        String palabra = buffer.toString().toUpperCase();
+                        TiposTokens tipo = PALABRAS_CLAVE.contains(palabra) ? TiposTokens.Palabra_clave : TiposTokens.Identificador;
+                        tokens.add(new Token(tipo, buffer.toString()));
+                        buffer.setLength(0);
+                        estado = Estado.INICIO;
+                        i--;
                     }
                 }
                 case CADENA -> {
                     buffer.append(c);
                     if (c == '"') {
                         tokens.add(new Token(TiposTokens.Cadena, buffer.toString()));
-                        buffer.setLength(0); 
-                        estado = Estado.INICIO; 
+                        buffer.setLength(0);
+                        estado = Estado.INICIO;
                     }
                 }
                 case OPERADOR -> {
@@ -99,40 +115,37 @@ public class ProcesadorLisp {
                         buffer.append(c);
                     } else {
                         tokens.add(new Token(TiposTokens.Operador, buffer.toString()));
-                        buffer.setLength(0); 
-                        estado = Estado.INICIO; 
+                        buffer.setLength(0);
+                        estado = Estado.INICIO;
+                        i--;
                     }
                 }
             }
         }
-        
+
         if (buffer.length() > 0) {
-            tokens.add(new Token(TiposTokens.Identificador, buffer.toString()));
+            String palabra = buffer.toString().toUpperCase();
+            TiposTokens tipo = PALABRAS_CLAVE.contains(palabra) ? TiposTokens.Palabra_clave : TiposTokens.Identificador;
+            tokens.add(new Token(tipo, buffer.toString()));
         }
 
         return tokens;
     }
 
     public static void main(String[] args) {
-        String expression = "(+ 2 (* V 8))";
+        String expression = "(SETQ x 10 'y `z ,w @v #t #(1 2 3))";
 
-        // Limpiar espacios innecesarios
         String cleanedExpression = cleanInput(expression);
         System.out.println("Expresión limpiada: " + cleanedExpression);
 
-        // Verificar balance de paréntesis
         boolean balanced = isBalanced(cleanedExpression);
         System.out.println("Balance de paréntesis: " + (balanced ? "Correcto" : "Incorrecto"));
 
-        // Crear un procesador y tokenizar la expresión
         ProcesadorLisp procesador = new ProcesadorLisp();
         List<Token> tokens = procesador.tokenizar(expression);
 
-        // Imprimir los tokens obtenidos
         for (Token token : tokens) {
             System.out.println(token);
         }
     }
 }
-
-
