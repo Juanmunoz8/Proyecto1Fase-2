@@ -7,6 +7,8 @@ public class ProcesadorLisp {
     }
 
     private static final Set<String> PALABRAS_CLAVE = Set.of("QUOTE", "SETQ", "DEFUN");
+    private final Map<String, Object> variables = new HashMap<>();
+    private final Map<String, List<Object>> funciones = new HashMap<>();
 
     public static String cleanInput(String input) {
         return input.replaceAll("\\s+", " ").trim();
@@ -132,20 +134,48 @@ public class ProcesadorLisp {
         return tokens;
     }
 
-    public static void main(String[] args) {
-        String expression = "(SETQ x 10 'y `z ,w @v #t #(1 2 3))";
-
-        String cleanedExpression = cleanInput(expression);
-        System.out.println("Expresión limpiada: " + cleanedExpression);
-
-        boolean balanced = isBalanced(cleanedExpression);
-        System.out.println("Balance de paréntesis: " + (balanced ? "Correcto" : "Incorrecto"));
-
-        ProcesadorLisp procesador = new ProcesadorLisp();
-        List<Token> tokens = procesador.tokenizar(expression);
-
-        for (Token token : tokens) {
-            System.out.println(token);
+    public Object evaluar(Object expresion) {
+        if (expresion instanceof List<?>) {
+            List<?> lista = (List<?>) expresion;
+            if (lista.isEmpty()) return null;
+            Object operador = lista.get(0);
+    
+            if (operador instanceof String op) {
+                switch (op) {
+                    case "+" -> {
+                        return (int) evaluar(lista.get(1)) + (int) evaluar(lista.get(2));
+                    }
+                    case "-" -> {
+                        return (int) evaluar(lista.get(1)) - (int) evaluar(lista.get(2));
+                    }
+                    case "*" -> {
+                        return (int) evaluar(lista.get(1)) * (int) evaluar(lista.get(2));
+                    }
+                    case "/" -> {
+                        return (int) evaluar(lista.get(1)) / (int) evaluar(lista.get(2));
+                    }
+                    case "SETQ" -> {
+                        String varName = (String) lista.get(1);
+                        Object value = evaluar(lista.get(2));
+                        variables.put(varName, value);
+                        return value;
+                    }
+                    case "QUOTE" -> {
+                        return lista.get(1);
+                    }
+                }
+            }
+        } else if (expresion instanceof String varName && variables.containsKey(varName)) {
+            return variables.get(varName);
+        } else {
+            return expresion;
         }
+        return null;
+    }
+    
+    public static void main(String[] args) {
+        ProcesadorLisp procesador = new ProcesadorLisp();
+        List<Object> expresion = List.of("+", 2, List.of("*", 3, 4));
+        System.out.println("Resultado: " + procesador.evaluar(expresion));
     }
 }
