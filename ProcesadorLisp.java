@@ -9,6 +9,8 @@ public class ProcesadorLisp {
     private static final Set<String> PALABRAS_CLAVE = Set.of("QUOTE", "SETQ", "DEFUN");
     private final Map<String, Object> variables = new HashMap<>();
     private final Map<String, List<Object>> funciones = new HashMap<>();
+    private List<Token> tokens;
+    private int posicion;
 
     public static String cleanInput(String input) {
         return input.replaceAll("\\s+", " ").trim();
@@ -134,6 +136,38 @@ public class ProcesadorLisp {
         return tokens;
     }
 
+    private Token consume() {
+        if (posicion >= tokens.size()) {
+            throw new IllegalStateException("No hay más tokens para consumir");
+        }
+        return tokens.get(posicion++);
+    }
+
+    private Token peek() {
+        if (posicion >= tokens.size()) {
+            throw new IllegalStateException("No hay más tokens disponibles");
+        }
+        return tokens.get(posicion);
+    }
+
+    private Object parseExpression() {
+        Token token = consume();
+        if (token.getTipo() == TiposTokens.Parentesis_Abierto) {
+            List<Object> lista = new ArrayList<>();
+            while (peek().getTipo() != TiposTokens.Parentesis_Cerrado) {
+                lista.add(parseExpression());
+            }
+            consume(); 
+            return lista;
+        } else if (token.getTipo() == TiposTokens.Numero_entero) {
+            return Integer.parseInt(token.getValor());
+        } else if (token.getTipo() == TiposTokens.Identificador || token.getTipo() == TiposTokens.Operador) {
+            return token.getValor();
+        } else {
+            return null;
+        }
+    }
+
     public Object evaluar(Object expresion) {
         if (expresion instanceof List<?>) {
             List<?> lista = (List<?>) expresion;
@@ -172,10 +206,38 @@ public class ProcesadorLisp {
         }
         return null;
     }
-    
+
     public static void main(String[] args) {
         ProcesadorLisp procesador = new ProcesadorLisp();
-        List<Object> expresion = List.of("+", 2, List.of("*", 3, 4));
-        System.out.println("Resultado: " + procesador.evaluar(expresion));
+        Scanner scanner = new Scanner(System.in);
+    
+        
+        System.out.print("Ingrese una expresión Lisp: ");
+        String expression = scanner.nextLine();  
+    
+        
+        String cleanedExpression = cleanInput(expression);
+        if (!isBalanced(cleanedExpression)) {
+            System.out.println("Error: La expresión tiene paréntesis desbalanceados.");
+            return;
+        }
+    
+        
+        List<Token> tokens = procesador.tokenizar(cleanedExpression);
+        System.out.println("\nTokens generados:");
+        tokens.forEach(System.out::println);
+    
+        
+        procesador.tokens = tokens;  
+        procesador.posicion = 0;  
+        Object estructuraParseada = procesador.parseExpression();
+        System.out.println("\nEstructura parseada:");
+        System.out.println(estructuraParseada);
+    
+        Object resultado = procesador.evaluar(estructuraParseada);
+        System.out.println("\nResultado Evaluado:");
+        System.out.println(resultado);
+    
+        scanner.close(); 
     }
 }
