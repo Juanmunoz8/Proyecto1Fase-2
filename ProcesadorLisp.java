@@ -105,28 +105,32 @@ public class ProcesadorLisp {
         return "Función " + nombre + " definida.";
     }
 
-    private List<Object> parseTokens(List<String> tokens) {
+    private Object parseTokens(List<String> tokens) {
         if (tokens.isEmpty()) throw new IllegalArgumentException("Expresión vacía");
-
+    
         String token = tokens.remove(0);
         if (token.equals("(")) {
             List<Object> list = new ArrayList<>();
-            while (!tokens.get(0).equals(")")) {
-                list.add(parseTokens(tokens));
+            while (!tokens.isEmpty() && !tokens.get(0).equals(")")) {
+                list.add(parseTokens(tokens));  // Llamada recursiva
             }
-            tokens.remove(0);
+            if (tokens.isEmpty()) {
+                throw new IllegalArgumentException("Paréntesis desbalanceados");
+            }
+            tokens.remove(0); // Elimina el ')'
             return list;
         } else if (token.equals(")")) {
             throw new IllegalArgumentException("Paréntesis desbalanceados");
         } else {
             try {
-                return List.of(Integer.parseInt(token));
+                return Integer.parseInt(token); // Devuelve directamente el número
             } catch (NumberFormatException e) {
-                return List.of(token);
+                return token; // Devuelve directamente el identificador
             }
         }
     }
-
+    
+    
     public static void main(String[] args) {
         ProcesadorLisp procesador = new ProcesadorLisp();
         Map<String, Object> contexto = new HashMap<>();
@@ -139,8 +143,10 @@ public class ProcesadorLisp {
             if (input.equalsIgnoreCase("SALIR")) break;
 
             try {
-                List<Object> expresion = procesador.parseTokens(new ArrayList<>(Arrays.asList(input.replace("(", " ( ").replace(")", " ) ").trim().split("\\s+"))));
-                Object resultado = procesador.evaluar(expresion.get(0), contexto);
+                Object expresion = procesador.parseTokens(new ArrayList<>(Arrays.asList(input.replace("(", " ( ").replace(")", " ) ").trim().split("\\s+"))));
+Object resultado = procesador.evaluar(expresion, contexto);
+
+                
                 System.out.println("Resultado: " + resultado);
             } catch (Exception e) {
                 System.out.println("Error: " + e.getMessage());
