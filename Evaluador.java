@@ -2,7 +2,7 @@ import java.util.*;
 public class Evaluador {
     private final Map<String, Object> variables = new HashMap<>();
 
-    
+    // Metodo para darle logica a cada token considerado diferente a un numero
     public Object evaluar(Object expresion) {
         if (expresion instanceof List<?>) {
             List<?> lista = (List<?>) expresion;
@@ -37,6 +37,7 @@ public class Evaluador {
                 case "List":
                     return lista.subList(1, lista.size());
                 case "COND": { 
+                    // La recursion aumenta acorde al numero de condiciones que son ingresadas 
                     for (int i = 1; i < lista.size(); i++) {
                         List<?> condicion = (List<?>) lista.get(i);
                         if ((boolean) evaluar(condicion.get(0))) {
@@ -51,7 +52,11 @@ public class Evaluador {
         } else if (expresion instanceof String varName && variables.containsKey(varName)) {
             return variables.get(varName);
         } else {
-            return expresion;
+            try {
+                return Double.parseDouble(expresion.toString());
+            } catch (NumberFormatException e) {
+                return expresion;  
+            }
         }
     }
 }

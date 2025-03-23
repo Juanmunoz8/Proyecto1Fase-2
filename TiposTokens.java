@@ -6,6 +6,7 @@ public enum TiposTokens {
     Identificador,
     Palabra_clave,
     Numero_entero,
+    Numero_decimal,
     Cadena,
     Booleano,
     Caracter,

@@ -7,7 +7,7 @@ public class Parser {
         this.tokens = tokens;
         this.posicion = 0;
     }
-    
+    //Permite al parser continuar al siguiente elemento de la lista 
     private Token consume() {
         return tokens.get(posicion++);
     }
@@ -16,8 +16,10 @@ public class Parser {
         return tokens.get(posicion);
     }
     
+    // Procesa los tokens dentro de la expresion
     public Object parseExpression() {
         Token token = consume();
+    
         if (token.getTipo() == TiposTokens.Parentesis_Abierto) {
             List<Object> lista = new ArrayList<>();
             while (peek().getTipo() != TiposTokens.Parentesis_Cerrado) {
@@ -25,10 +27,14 @@ public class Parser {
             }
             consume(); 
             return lista;
+            // Retorna los tokens con su respectivo valor numerico
         } else if (token.getTipo() == TiposTokens.Numero_entero) {
             return Integer.parseInt(token.getValor());
+        } else if (token.getTipo() == TiposTokens.Numero_decimal) {
+            return Double.parseDouble(token.getValor());
         } else {
-            return token.getValor();
+            // Regresan los tokens que no son numericos sin modificar, ya que la logica de estos estara en Evaluador
+            return token.getValor();  
         }
     }
 }

@@ -5,7 +5,7 @@ public class EjecutorLisp {
         Lexer lexer = new Lexer();
         Parser parser = new Parser();
         Evaluador evaluador = new Evaluador();
-        
+
         System.out.print("Ingrese una expresión Lisp: ");
         String expression = scanner.nextLine();
         
@@ -15,6 +15,7 @@ public class EjecutorLisp {
         
         Object resultado = evaluador.evaluar(estructuraParseada);
         
+        // Muestra el resultado de analisis de Lexer, Parser y Evaluador
         System.out.println("\nResultado Evaluado:");
         System.out.println(resultado);
         scanner.close();
